@@ -1,0 +1,20 @@
+{
+  "name": "price-deflation-bot",
+  "version": "1.0.0",
+  "description": "price deflation telegram bot",
+  "main": "bot.js",
+  "scripts": {
+    "node": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "author": "Efim Maisak",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  },
+  "dependencies": {
+    "big.js": "^6.2.1",
+    "dotenv": "^16.0.3",
+    "telegraf": "^4.10.0"
+  }
+}
