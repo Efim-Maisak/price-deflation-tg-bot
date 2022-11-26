@@ -1,4 +1,4 @@
-# Efim-Maisak-price-deflation-tg-bot
+# price-deflation-tg-bot
 Telegram bot for price deflation.
 
 Used libraries:
