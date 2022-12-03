@@ -25,6 +25,8 @@ ctx.replyWithHTML(`
 <b>Приветствую, ${ctx.message.from.first_name}!</b>
 Добро пожаловать в бот для расчета цен по индексам-дефляторам.
 
+Посмотреть справку /help
+
 <i>Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать базовые.</i>
 `, Markup.inlineKeyboard(
     [
@@ -49,23 +51,35 @@ bot.action('calcPrice', async (ctx) => {
 
 
 // help
-bot.help((ctx) => ctx.replyWithHTML(`
-<b>Справка</b>
+bot.help((ctx) => {
+    let basicYearsCopy = basicYears.slice();
+    let basicDeflatorsCopy = basicDeflators.slice();
+    ctx.replyWithHTML(`
+<b>Справка:</b>
+
 Базовые дефляторы:
-${basicYears.splice(1, 5).join(' | ')}
-${basicDeflators.splice(1, 5).map( item => String(item).concat('%')).join(' | ')}
+${basicYearsCopy.splice(1, 5).join(' | ')}
+${basicDeflatorsCopy.splice(1, 5).map( item => String(item).concat('%')).join(' | ')}
 
 Команды:
 /calc - Произвести расчет цен;
-/set - Установить пользовательские дефляторы.
+/set - Установить пользовательские дефляторы;
 /cancel - Закончить диалог ввода года и цены.
-`));
+`);
+});
 
 
 //calc
 bot.command('calc', async (ctx) => {
     await ctx.scene.enter('calcPriceWizard');
 });
+
+
+// set
+bot.command('set', async (ctx) => {
+    await ctx.reply('Данная функция в настоящее время недоступна');
+});
+
 
 
 bot.launch();

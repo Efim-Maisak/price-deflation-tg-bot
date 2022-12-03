@@ -11,58 +11,51 @@ let resultFinal = [];
 
 
 const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
+    usedYears.length = [];
+    usedDeflators.length = [];
+    resultFinal.length = [];
     ctx.wizard.state.data = {};
+    ctx.wizard.state.data.messageCounter = 0;
     ctx.reply('Введите год начальной цены:');
+    ctx.wizard.state.data.messageCounter += 1;
     return ctx.wizard.next();
   },
   (ctx) => {
+    ctx.wizard.state.data.messageCounter += 1;
     ctx.wizard.state.data.yearAnswer = ctx.message.text;
-    if(parseInt(ctx.wizard.state.data.yearAnswer) < 2019 || parseInt(ctx.wizard.state.data.yearAnswer) > 2023 || isNaN(ctx.wizard.state.data.yearAnswer)) {
+    if(parseInt(ctx.wizard.state.data.yearAnswer) < parseInt(basicYears.basicYears[0]) || parseInt(ctx.wizard.state.data.yearAnswer) > parseInt(basicYears.basicYears[basicYears.basicYears.length - 2]) || isNaN(ctx.wizard.state.data.yearAnswer)) {
+      deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
       ctx.reply('Вы ввели неправильный год начальной цены.');
       return ctx.scene.leave();
     } else {
       ctx.reply('Введите начальную цену');
+      ctx.wizard.state.data.messageCounter += 1;
       return ctx.wizard.next();
     }
   },
   (ctx) => {
+    ctx.wizard.state.data.messageCounter += 1;
     ctx.wizard.state.data.priceAnswer = ctx.message.text;
     if(Number(ctx.wizard.state.data.priceAnswer.replace(",", ".")) <= 0 || isNaN(ctx.wizard.state.data.priceAnswer.replace(",", "."))) {
+      deleteMessages(ctx.wizard.state.data.messageCounter  - 1, ctx);
       ctx.reply('Вы ввели некорректное число.');
       return ctx.scene.leave();
     } else {
       ctx.wizard.state.data.calcPrice = calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, basicYears.basicYears, basicDeflators.basicDeflators);
-      deleteMessages(3, ctx);
+      deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
       ctx.reply(`
-      Вы ввели год: ${ctx.wizard.state.data.yearAnswer} и цену: ${ctx.wizard.state.data.priceAnswer}\nРезультат:\n${createCalcResponse(resultFinal, usedYears, usedDeflators)}
-      `, Markup.inlineKeyboard(
-      [
-        [Markup.button.callback('Расчитать еще', 'calcPriceAgain'), Markup.button.callback('Закончить', 'calcPriceExit')]
-      ]
-      ));
+      Вы ввели год: ${ctx.wizard.state.data.yearAnswer} и цену: ${ctx.wizard.state.data.priceAnswer.replace(".", ",")}\nРезультат:\n${createCalcResponse(resultFinal, usedYears, usedDeflators)}
+      `, Markup.keyboard(['/calc']).resize());
     }
-    //return ctx.scene.leave();
+    return ctx.scene.leave();
   }
 );
 
-
-calcPriceScene.action('calcPriceAgain', async (ctx) => {
-  await ctx.answerCbQuery();
-  await ctx.wizard.selectStep(1);
-  ctx.reply('Введите год начальной цены:');
-  }
-);
-
-calcPriceScene.action('calcPriceExit', async (ctx) => {
-  await ctx.answerCbQuery();
-  await ctx.scene.leave();
-  ctx.reply('Расчет окончен.');
-  }
-);
 
 calcPriceScene.hears('/cancel', async (ctx) => {
+  deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
   await ctx.scene.leave();
-  ctx.reply('Расчет окончен.');
+  ctx.reply('Расчет отменен.');
 });
 
 
@@ -136,7 +129,12 @@ async function deleteMessages(count, ctx) {
   let messageId = 0;
   for(let i = ctx.message.message_id; i >= ctx.message.message_id - count; i--){
     messageId = i;
-    await ctx.deleteMessage(messageId);
+    try {
+      await ctx.deleteMessage(messageId);
+    } catch(e) {
+      new Error('Ошибка удаления сообщения');
+    }
+
   }
 }
 
