@@ -19,7 +19,8 @@ const basicDeflators = [0, 0.4, 20.3, 3.9, 3.2, 3.7];
 
 // start
 bot.start((ctx) => {
-//  здесь будет код записи юзера в базу.
+
+checkUser(ctx);
 
 ctx.replyWithHTML(`
 <b>Приветствую, ${ctx.message.from.first_name}!</b>
@@ -65,6 +66,8 @@ ${basicDeflatorsCopy.splice(1, 5).map( item => String(item).concat('%')).join(' 
 /calc - Произвести расчет цен;
 /set - Установить пользовательские дефляторы;
 /cancel - Закончить диалог ввода года и цены.
+
+Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать базовые.
 `);
 });
 
@@ -79,6 +82,66 @@ bot.command('calc', async (ctx) => {
 bot.command('set', async (ctx) => {
     await ctx.reply('Данная функция в настоящее время недоступна');
 });
+
+
+
+async function checkUser(ctx) {
+    ctx.session.userData = {
+        userId: ctx.message.from.id,
+        userFirstName: ctx.message.from.first_name,
+        userName: ctx.message.from.username
+    };
+
+    try {
+        let response = await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/?user_field_names=true&filter__field_4170__equal=${ctx.session.userData.userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${process.env.DB_TOKEN}`
+        },
+      });
+
+      let result = await response.json();
+      let checkedUser = result.count;
+
+      if (result.results.length == 0) {
+        ctx.session.userRowId = 0;
+      } else {
+        ctx.session.userRowId = result.results[0].id;
+      }
+
+      if(checkedUser == 0) {
+        try {
+            await fetch('https://baserow.coldnaked.ru/api/database/rows/table/460/?user_field_names=true', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Token ${process.env.DB_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(ctx.session.userData)
+            });
+        } catch(e) {
+            new Error('Ошибка POST запроса к базе данных');
+        }
+      } else {
+        let userDataPatching = JSON.parse(JSON.stringify(ctx.session.userData));
+        delete userDataPatching.userId;
+        try {
+            await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/${ctx.session.userRowId}/?user_field_names=true`, {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Token ${process.env.DB_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userDataPatching)
+              });
+        } catch(e) {
+            new Error('Ошибка PATCH запроса к базе данных');
+        }
+      }
+    } catch(e) {
+        new Error('Ошибка GET запроса к базе данных');
+    }
+}
 
 
 

@@ -11,9 +11,9 @@ let resultFinal = [];
 
 
 const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
-    usedYears.length = [];
-    usedDeflators.length = [];
-    resultFinal.length = [];
+    usedYears = [];
+    usedDeflators = [];
+    resultFinal = [];
     ctx.wizard.state.data = {};
     ctx.wizard.state.data.messageCounter = 0;
     ctx.reply('Введите год начальной цены:');
