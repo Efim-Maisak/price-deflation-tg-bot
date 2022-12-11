@@ -1,5 +1,4 @@
-const { Scenes } = require('telegraf');
-const { Markup } = require('telegraf');
+const { Markup, Scenes } = require('telegraf');
 const Big = require('big.js');
 let basicYears = require('../bot');
 let basicDeflators = require('../bot');
@@ -16,7 +15,7 @@ const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
     resultFinal = [];
     ctx.wizard.state.data = {};
     ctx.wizard.state.data.messageCounter = 0;
-    ctx.reply('Введите год начальной цены:');
+    ctx.reply('Введите год начальной цены', Markup.keyboard(['/cancel']).oneTime().resize());
     ctx.wizard.state.data.messageCounter += 1;
     return ctx.wizard.next();
   },
@@ -28,7 +27,7 @@ const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
       ctx.reply('Вы ввели неправильный год начальной цены.');
       return ctx.scene.leave();
     } else {
-      ctx.reply('Введите начальную цену');
+      ctx.reply('Введите начальную цену', Markup.keyboard(['/cancel']).oneTime().resize());
       ctx.wizard.state.data.messageCounter += 1;
       return ctx.wizard.next();
     }
@@ -63,7 +62,6 @@ function calcPrice(originalYear, originalPrice, years, deflators) {
   let yearIndex = years.indexOf(originalYear); // получаем индекс элемента исходного года (priceYear)
   let result = [];
   const priceBig = new Big(parseFloat(originalPrice.replace(",", ".")));
-
 
   if (yearIndex !== -1) {
     let semiResult = priceBig;
@@ -139,4 +137,6 @@ async function deleteMessages(count, ctx) {
 }
 
 
-module.exports = {calcPriceScene};
+
+module.exports = calcPriceScene;
+//module.exports = {deleteMessages};

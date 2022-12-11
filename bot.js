@@ -2,19 +2,20 @@ require('dotenv').config();
 
 const { Telegraf, Markup, Scenes, session, Composer } = require('telegraf');
 
-const { calcPriceScene } = require('./scenes/calc-price-scene');
+const calcPriceScene = require('./scenes/calc-price-scene');
+const setDeflatorsScene = require('./scenes/set-deflators-scene');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 
-const stage = new Scenes.Stage([calcPriceScene]);
+const stage = new Scenes.Stage([calcPriceScene, setDeflatorsScene]);
 bot.use(session());
 bot.use(stage.middleware());
 
 
 // Базовые константы
-const basicYears = ["2019","2020", "2021", "2022", "2023", "2024"];
-const basicDeflators = [0, 0.4, 20.3, 3.9, 3.2, 3.7];
+const basicYears = ["2020","2021", "2022", "2023", "2024", "2025"];
+const basicDeflators = [0, 21.8, 12.9, 4.5, 4.3, 3.9];
 
 
 // start
@@ -40,7 +41,7 @@ ctx.replyWithHTML(`
 
 bot.action('newDeflators', async (ctx) => {
     await ctx.answerCbQuery();
-    await ctx.reply('Данная функция в настоящее время недоступна');
+    await ctx.scene.enter('setDeflatorsWizard');
 });
 
 
@@ -55,20 +56,53 @@ bot.action('calcPrice', async (ctx) => {
 bot.help((ctx) => {
     let basicYearsCopy = basicYears.slice();
     let basicDeflatorsCopy = basicDeflators.slice();
-    ctx.replyWithHTML(`
+
+    if(!ctx.session.userCustomYears || !ctx.session.userCustomDeflators) {
+      ctx.replyWithHTML(`
 <b>Справка:</b>
 
-Базовые дефляторы:
+Индексы дефляторы по умолчанию (Раздел C "Обрабатывающие производства")
+на основании Письма Минэкономразвития РФ № 36804-ПК от 28.09.2022:
+
 ${basicYearsCopy.splice(1, 5).join(' | ')}
 ${basicDeflatorsCopy.splice(1, 5).map( item => String(item).concat('%')).join(' | ')}
 
-Команды:
+Пользовательские дефляторы не определены.
+
+&#9888 Команды:
+
 /calc - Произвести расчет цен;
 /set - Установить пользовательские дефляторы;
 /cancel - Закончить диалог ввода года и цены.
+/toggle - Переключить набор дефляторов с пользовательского на базовый и наоборот.
 
-Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать базовые.
-`);
+&#8505 Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать базовые.
+      `);
+    } else {
+      ctx.replyWithHTML(`
+<b>Справка:</b>
+
+Индексы дефляторы по умолчанию (Раздел C "Обрабатывающие производства")
+на основании Письма Минэкономразвития РФ № 36804-ПК от 28.09.2022:
+
+${basicYearsCopy.splice(1, 5).join(' | ')}
+${basicDeflatorsCopy.splice(1, 5).map( item => String(item).concat('%')).join(' | ')}
+
+Пользовательские дефляторы:
+
+${ctx.session.userCustomYears.join(' | ')}
+${ctx.session.userCustomDeflators.join(' | ')}
+
+&#9888 Команды:
+
+/calc - Произвести расчет цен;
+/set - Установить пользовательские дефляторы;
+/cancel - Закончить диалог ввода года и цены.
+/toggle - Переключить набор дефляторов с пользовательского на базовый и наоборот.
+
+&#8505 Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать базовые.
+      `);
+    }
 });
 
 
@@ -80,9 +114,76 @@ bot.command('calc', async (ctx) => {
 
 // set
 bot.command('set', async (ctx) => {
-    await ctx.reply('Данная функция в настоящее время недоступна');
+  await ctx.scene.enter('setDeflatorsWizard');
 });
 
+
+// toggle
+bot.command('toggle', async (ctx) => {
+
+  try {
+    let response = await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/?user_field_names=true&filter__field_4170__equal=${ctx.message.from.id}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Token ${process.env.DB_TOKEN}`
+    },
+  });
+
+  let result = await response.json();
+
+  ctx.session.userRowId = result.results[0].id;
+  ctx.session.isCustomDef = result.results[0].isCustomDef;
+
+  } catch(e) {
+      new Error('Ошибка GET запроса к базе данных');
+  }
+
+
+  if (ctx.session.isCustomDef) {
+
+    const toggleData = {
+      isCustomDef: false
+    };
+
+    try {
+      await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/${ctx.session.userRowId}/?user_field_names=true`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Token ${process.env.DB_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(toggleData)
+        });
+  } catch(e) {
+      new Error('Ошибка PATCH запроса к базе данных');
+  }
+
+  ctx.session.isCustomDef = false;
+  ctx.reply('Выбраны базовые индексы дефляторы');
+
+  } else {
+    const toggleData = {
+      isCustomDef: true
+    };
+
+    try {
+      await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/${ctx.session.userRowId}/?user_field_names=true`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Token ${process.env.DB_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(toggleData)
+        });
+  } catch(e) {
+      new Error('Ошибка PATCH запроса к базе данных');
+  }
+
+  ctx.session.isCustomDef = true;
+  ctx.reply('Выбраны пользовательские индексы дефляторы');
+  }
+
+});
 
 
 async function checkUser(ctx) {
@@ -108,6 +209,7 @@ async function checkUser(ctx) {
       } else {
         ctx.session.userRowId = result.results[0].id;
       }
+
 
       if(checkedUser == 0) {
         try {
