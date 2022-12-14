@@ -22,7 +22,6 @@ const setDeflatorsScene = new Scenes.WizardScene('setDeflatorsWizard', (ctx) => 
             deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
             return ctx.scene.leave();
       }
-
   },
   (ctx) => {
             if(ctx.message.text.match(/\d+\.\d+/g)) {
@@ -34,7 +33,7 @@ const setDeflatorsScene = new Scenes.WizardScene('setDeflatorsWizard', (ctx) => 
                   ctx.reply(`
                   Вы изменили индексы дефляторы по умолчанию на:
 ${ctx.wizard.state.data.yearsKit.join(' | ')}
-${ctx.wizard.state.data.deflatorsKit.join(' | ')}
+${ctx.wizard.state.data.deflatorsKit.map( item => item.concat('%')).join(' | ')}
                   `);
                   ctx.session.userCustomYears = [ String(parseInt(ctx.wizard.state.data.yearsKit[0]) - 1), ...ctx.wizard.state.data.yearsKit];
                   ctx.session.userCustomDeflators = [ '0', ...ctx.wizard.state.data.deflatorsKit];

@@ -40,11 +40,23 @@ const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
       ctx.reply('Вы ввели некорректное число.');
       return ctx.scene.leave();
     } else {
-      ctx.wizard.state.data.calcPrice = calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, basicYears.basicYears, basicDeflators.basicDeflators);
-      deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
-      ctx.reply(`
+      checkUserDeflators(ctx).then(() => {
+        if(ctx.session.isCustomDef) {
+          // применить пользовательские дефляторы
+          calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, ctx.session.userCustomYears, ctx.session.userCustomDeflators);
+          deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
+          ctx.reply(`
       Вы ввели год: ${ctx.wizard.state.data.yearAnswer} и цену: ${ctx.wizard.state.data.priceAnswer.replace(".", ",")}\nРезультат:\n${createCalcResponse(resultFinal, usedYears, usedDeflators)}
       `, Markup.keyboard(['/calc']).resize());
+        } else {
+          // применить базовые дефляторы
+          calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, basicYears.basicYears, basicDeflators.basicDeflators);
+          deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
+          ctx.reply(`
+      Вы ввели год: ${ctx.wizard.state.data.yearAnswer} и цену: ${ctx.wizard.state.data.priceAnswer.replace(".", ",")}\nРезультат:\n${createCalcResponse(resultFinal, usedYears, usedDeflators)}
+      `, Markup.keyboard(['/calc']).resize());
+        }
+      });
     }
     return ctx.scene.leave();
   }
@@ -133,6 +145,59 @@ async function deleteMessages(count, ctx) {
       new Error('Ошибка удаления сообщения');
     }
 
+  }
+}
+
+async function checkUserDeflators(ctx) {
+
+  ctx.session.dbDeflatorsData = {};
+
+  try {
+    let response = await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/?user_field_names=true&filter__field_4170__equal=${ctx.message.from.id}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Token ${process.env.DB_TOKEN}`
+    },
+  });
+
+  let result = await response.json();
+
+  ctx.session.userRowId = result.results[0].id;
+
+  if(result.results[0].isCustomDef) {
+
+    ctx.session.dbDeflatorsData = {
+      data1: result.results[0].data1 || "",
+      data2: result.results[0].data2 || "",
+      data3: result.results[0].data3 || "",
+      data4: result.results[0].data4 || "",
+      data5: result.results[0].data5 || "",
+      data6: result.results[0].data6 || ""
+    };
+
+    let yearsArr = [];
+    let deflatorsArr = [];
+
+    let resultsArr = Object.values(ctx.session.dbDeflatorsData);
+    let filteredArr = resultsArr.filter(item => item !== '');
+
+    filteredArr.forEach(elem => {
+      let subArr = [];
+      subArr = elem.split('-');
+      yearsArr.push(subArr[0]);
+      deflatorsArr.push(subArr[1]);
+    });
+
+    ctx.session.userCustomYears = [ String(parseInt(yearsArr[0]) - 1), ...yearsArr] ;
+    ctx.session.userCustomDeflators = [ '0', ...deflatorsArr];
+
+    ctx.session.isCustomDef = true;
+  } else {
+    ctx.session.isCustomDef = false;
+  }
+
+  } catch(e) {
+      new Error('Ошибка GET запроса к базе данных');
   }
 }
 
