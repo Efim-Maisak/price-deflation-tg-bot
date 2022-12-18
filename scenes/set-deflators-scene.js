@@ -1,19 +1,19 @@
 const { Markup, Scenes } = require('telegraf');
-//const {deleteMessages} = require('./calc-price-scene');
+const {deleteMessages} = require('../services/deleteMessages');
 
 
 const setDeflatorsScene = new Scenes.WizardScene('setDeflatorsWizard', (ctx) => {
       ctx.wizard.state.data = {};
       ctx.wizard.state.data.messageCounter = 0;
-      ctx.reply('Введите все годы цен через пробел', Markup.keyboard(['/cancel']).oneTime().resize());
+      ctx.reply('Введите все годы цен по порядку через пробел или дефис', Markup.keyboard(['/cancel']).oneTime().resize());
       ctx.wizard.state.data.messageCounter += 1;
       return ctx.wizard.next();
   },
   (ctx) => {
-      if(ctx.message.text.match(/\d{4}\s*/g)) {
+      if(ctx.message.text.match(/\d{4}[ |-]*/g)) {
             ctx.wizard.state.data.messageCounter += 1;
-            ctx.wizard.state.data.yearsKit = ctx.message.text.split(' ');
-            ctx.reply('Введите все дефляторы через пробел', Markup.keyboard(['/cancel']).oneTime().resize());
+            ctx.wizard.state.data.yearsKit = ctx.message.text.split(/\-|\s+/);
+            ctx.reply('Введите все дефляторы по порядку через пробел или дефис', Markup.keyboard(['/cancel']).oneTime().resize());
             ctx.wizard.state.data.messageCounter += 1;
             deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
             return ctx.wizard.next();
@@ -24,9 +24,10 @@ const setDeflatorsScene = new Scenes.WizardScene('setDeflatorsWizard', (ctx) => 
       }
   },
   (ctx) => {
-            if(ctx.message.text.match(/\d+\.\d+/g)) {
+            if(ctx.message.text.match(/(?:0|[1-9]\d*[,.]\d+)[ -](?:0|[1-9]\d*[,.]\d+)[ -](?:0|[1-9]\d*[,.]\d+)(?:[ -](?:0|[1-9]\d*[,.]\d+))?(?:[ -](?:0|[1-9]\d*[,.]\d+))?(?:[ -](?:0|[1-9]\d*[,.]\d+))?/g)) {
                   ctx.wizard.state.data.messageCounter += 1;
-                  ctx.wizard.state.data.deflatorsKit = ctx.message.text.split(' ');
+                  ctx.message.text = ctx.message.text.replace(/(?=\d{3}[.,])\b10?/g, ''); //найти и удалить 1/10 у каждого дефлятора (вид пригодный для расчетов)
+                  ctx.wizard.state.data.deflatorsKit = ctx.message.text.replace(/\,/g, '.').split(/\-|\s+/);
 
                   sendUserDeflators(mergeMessagesData(ctx.wizard.state.data.yearsKit, ctx.wizard.state.data.deflatorsKit), ctx);
 
@@ -50,7 +51,7 @@ ${ctx.wizard.state.data.deflatorsKit.map( item => item.concat('%')).join(' | ')}
 
 
 setDeflatorsScene.hears('/cancel', async (ctx) => {
-    deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
+    deleteMessages(ctx.wizard.state.data.messageCounter, ctx);
     await ctx.scene.leave();
     ctx.reply('Ввод новых дефляторов отменен.');
   });
@@ -128,21 +129,6 @@ setDeflatorsScene.hears('/cancel', async (ctx) => {
             new Error('Ошибка PATCH запроса к базе данных');
         }
   }
-
-
-  async function deleteMessages(count, ctx) {
-      let messageId = 0;
-      for(let i = ctx.message.message_id; i >= ctx.message.message_id - count; i--){
-        messageId = i;
-        try {
-          await ctx.deleteMessage(messageId);
-        } catch(e) {
-          new Error('Ошибка удаления сообщения');
-        }
-
-      }
-    }
-
 
 
   module.exports = setDeflatorsScene;

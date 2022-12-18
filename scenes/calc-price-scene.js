@@ -2,6 +2,7 @@ const { Markup, Scenes } = require('telegraf');
 const Big = require('big.js');
 let basicYears = require('../bot');
 let basicDeflators = require('../bot');
+const {deleteMessages} = require('../services/deleteMessages');
 
 
 let usedYears = [];
@@ -64,7 +65,7 @@ const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
 
 
 calcPriceScene.hears('/cancel', async (ctx) => {
-  deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
+  deleteMessages(ctx.wizard.state.data.messageCounter, ctx);
   await ctx.scene.leave();
   ctx.reply('Расчет отменен.');
 });
@@ -135,19 +136,6 @@ function createCalcResponse(result, usedYearsArr, usedDeflatorsArr) {
 }
 
 
-async function deleteMessages(count, ctx) {
-  let messageId = 0;
-  for(let i = ctx.message.message_id; i >= ctx.message.message_id - count; i--){
-    messageId = i;
-    try {
-      await ctx.deleteMessage(messageId);
-    } catch(e) {
-      new Error('Ошибка удаления сообщения');
-    }
-
-  }
-}
-
 async function checkUserDeflators(ctx) {
 
   ctx.session.dbDeflatorsData = {};
@@ -202,6 +190,4 @@ async function checkUserDeflators(ctx) {
 }
 
 
-
 module.exports = calcPriceScene;
-//module.exports = {deleteMessages};

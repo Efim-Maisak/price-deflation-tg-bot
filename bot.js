@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const { Telegraf, Markup, Scenes, session, Composer } = require('telegraf');
+const { Telegraf, Markup, Scenes, session} = require('telegraf');
 
 const calcPriceScene = require('./scenes/calc-price-scene');
 const setDeflatorsScene = require('./scenes/set-deflators-scene');
@@ -73,10 +73,10 @@ ${basicDeflatorsCopy.splice(1, 5).map( item => String(item).concat('%')).join(' 
 
 /calc - Произвести расчет цен;
 /set - Установить пользовательские дефляторы;
-/cancel - Завершить диалог ввода данных.
+/cancel - Завершить диалог ввода данных;
 /toggle - Переключить набор дефляторов с пользовательского на базовый и наоборот.
 
-&#8505 Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать базовые.
+&#8505 Вы можете ввести пользовательские дефляторы в бот или использовать индексы дефляторы по умолчанию.
       `);
     } else {
       ctx.replyWithHTML(`
@@ -97,10 +97,10 @@ ${ctx.session.userCustomDeflators.splice(1).map( item => item.concat('%')).join(
 
 /calc - Произвести расчет цен;
 /set - Установить пользовательские дефляторы;
-/cancel - Завершить диалог ввода данных.
+/cancel - Завершить диалог ввода данных;
 /toggle - Переключить набор дефляторов с пользовательского на базовый и наоборот.
 
-&#8505 Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать базовые.
+&#8505 Вы можете ввести пользовательские дефляторы в бот или использовать индексы дефляторы по умолчанию.
       `);
     }
 });
@@ -159,7 +159,7 @@ bot.command('toggle', async (ctx) => {
   }
 
   ctx.session.isCustomDef = false;
-  ctx.reply('Выбраны базовые индексы дефляторы');
+  ctx.reply('Выбраны индексы дефляторы по умолчанию');
 
   } else {
     const toggleData = {
@@ -246,8 +246,8 @@ async function checkUser(ctx) {
 }
 
 
-
 bot.launch();
+
 
 module.exports.basicYears = basicYears;
 module.exports.basicDeflators = basicDeflators;
