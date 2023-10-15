@@ -108,7 +108,6 @@ function calcPrice(originalYear, originalPrice, years, deflators) {
           } catch(e) {
             new Error('Ошибка вычислений');
           }
-
         }
       }
 

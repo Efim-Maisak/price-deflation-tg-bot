@@ -35,6 +35,8 @@ const setDeflatorsScene = new Scenes.WizardScene('setDeflatorsWizard', (ctx) => 
                   Вы изменили индексы дефляторы по умолчанию на:
 ${ctx.wizard.state.data.yearsKit.join(' | ')}
 ${ctx.wizard.state.data.deflatorsKit.map( item => item.concat('%')).join(' | ')}
+
+Переключаться между дефляторами можно с помощью команды /toggle
                   `);
                   ctx.session.userCustomYears = [ String(parseInt(ctx.wizard.state.data.yearsKit[0]) - 1), ...ctx.wizard.state.data.yearsKit];
                   ctx.session.userCustomDeflators = [ '0', ...ctx.wizard.state.data.deflatorsKit];

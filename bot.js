@@ -13,15 +13,15 @@ bot.use(session());
 bot.use(stage.middleware());
 
 
-// Базовые константы
-const basicYears = ["2020","2021", "2022", "2023", "2024", "2025"];
-const basicDeflators = [0, 21.8, 12.9, 4.5, 4.3, 3.9];
+// Базовые константы (год и дефлятор по умолчанию)
+const basicYears = ["2021","2022", "2023", "2024", "2025", "2026"];
+const basicDeflators = [0, 5.3, 3.0, 6.6, 3.9, 3.6];
 
 
 // start
 bot.start((ctx) => {
 
-checkUser(ctx);
+checkUser(ctx); // запрос к БД с проверкой наличия юзера
 
 ctx.replyWithHTML(`
 <b>Приветствую, ${ctx.message.from.first_name}!</b>
@@ -29,7 +29,7 @@ ctx.replyWithHTML(`
 
 Посмотреть справку /help
 
-<i>Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать базовые.</i>
+<i>Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать дефляторы по умолчанию.</i>
 `, Markup.inlineKeyboard(
     [
         [Markup.button.callback('Ввести новые дефляторы', 'newDeflators')],
@@ -52,7 +52,7 @@ bot.action('calcPrice', async (ctx) => {
 );
 
 
-// help
+// команда help (показать справку)
 bot.help((ctx) => {
     let basicYearsCopy = basicYears.slice();
     let basicDeflatorsCopy = basicDeflators.slice();
@@ -62,7 +62,7 @@ bot.help((ctx) => {
 <b>Справка:</b>
 
 Индексы дефляторы по умолчанию (Раздел C "Обрабатывающие производства")
-на основании Письма Минэкономразвития РФ № 36804-ПК от 28.09.2022:
+на основании Письма Минэкономразвития РФ № 35312-ПК/ДОЗи от 28.09.2023:
 
 ${basicYearsCopy.splice(1, 5).join(' | ')}
 ${basicDeflatorsCopy.splice(1, 5).map( item => String(item).concat('%')).join(' | ')}
@@ -83,7 +83,7 @@ ${basicDeflatorsCopy.splice(1, 5).map( item => String(item).concat('%')).join(' 
 <b>Справка:</b>
 
 Индексы дефляторы по умолчанию (Раздел C "Обрабатывающие производства")
-на основании Письма Минэкономразвития РФ № 36804-ПК от 28.09.2022:
+на основании Письма Минэкономразвития РФ № 35312-ПК/ДОЗи от 28.09.2023:
 
 ${basicYearsCopy.splice(1, 5).join(' | ')}
 ${basicDeflatorsCopy.splice(1, 5).map( item => String(item).concat('%')).join(' | ')}
@@ -186,7 +186,9 @@ bot.command('toggle', async (ctx) => {
 });
 
 
+// проверка и запись юзера в БД
 async function checkUser(ctx) {
+
     ctx.session.userData = {
         userId: ctx.message.from.id,
         userFirstName: ctx.message.from.first_name,
