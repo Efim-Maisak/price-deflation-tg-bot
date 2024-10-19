@@ -102,7 +102,7 @@ setDeflatorsScene.hears('/cancel', async (ctx) => {
 
       // получение номера строки и запись rowId в session
       try {
-            let response = await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/?user_field_names=true&filter__field_4170__equal=${ctx.message.from.id}`, {
+            let response = await fetch(`${process.env.DB_URL}/table/460/?user_field_names=true&filter__field_4170__equal=${ctx.message.from.id}`, {
             method: 'GET',
             headers: {
               'Authorization': `Token ${process.env.DB_TOKEN}`
@@ -114,12 +114,12 @@ setDeflatorsScene.hears('/cancel', async (ctx) => {
           ctx.session.userRowId = result.results[0].id;
 
       } catch(e) {
-            new Error('Ошибка GET запроса к базе данных');
+            new Error('Ошибка GET запроса к базе данных', e.message);
         }
 
       // запись пользовательских дефляторов в базу
       try {
-            await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/${ctx.session.userRowId}/?user_field_names=true`, {
+            await fetch(`${process.env.DB_URL}/table/460/${ctx.session.userRowId}/?user_field_names=true`, {
                 method: 'PATCH',
                 headers: {
                   'Authorization': `Token ${process.env.DB_TOKEN}`,
@@ -128,7 +128,7 @@ setDeflatorsScene.hears('/cancel', async (ctx) => {
                 body: JSON.stringify(ctx.session.userData)
               });
         } catch(e) {
-            new Error('Ошибка PATCH запроса к базе данных');
+            new Error('Ошибка PATCH запроса к базе данных', e.message);
         }
   }
 

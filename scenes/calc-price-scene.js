@@ -1,7 +1,6 @@
 const { Markup, Scenes } = require('telegraf');
 const Big = require('big.js');
-let basicYears = require('../bot');
-let basicDeflators = require('../bot');
+const { baseData } = require('../bot');
 const {deleteMessages} = require('../services/deleteMessages');
 
 
@@ -23,7 +22,7 @@ const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
   (ctx) => {
     ctx.wizard.state.data.messageCounter += 1;
     ctx.wizard.state.data.yearAnswer = ctx.message.text;
-    if(parseInt(ctx.wizard.state.data.yearAnswer) < parseInt(basicYears.basicYears[0]) || parseInt(ctx.wizard.state.data.yearAnswer) > parseInt(basicYears.basicYears[basicYears.basicYears.length - 2]) || isNaN(ctx.wizard.state.data.yearAnswer)) {
+    if(parseInt(ctx.wizard.state.data.yearAnswer) < parseInt(baseData.basicYears[0]) || parseInt(ctx.wizard.state.data.yearAnswer) > parseInt(baseData.basicYears[baseData.basicYears.length - 2]) || isNaN(ctx.wizard.state.data.yearAnswer)) {
       deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
       ctx.reply('Вы ввели неправильный год начальной цены.');
       return ctx.scene.leave();
@@ -51,7 +50,7 @@ const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
       `, Markup.keyboard(['/calc']).resize());
         } else {
           // применить базовые дефляторы
-          calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, basicYears.basicYears, basicDeflators.basicDeflators);
+          calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, baseData.basicYears, baseData.basicDeflators);
           deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
           ctx.reply(`
       Вы ввели год: ${ctx.wizard.state.data.yearAnswer} и цену: ${ctx.wizard.state.data.priceAnswer.replace(".", ",")}\nРезультат:\n${createCalcResponse(resultFinal, usedYears, usedDeflators)}
@@ -130,7 +129,6 @@ function createCalcResponse(result, usedYearsArr, usedDeflatorsArr) {
     resultArr.push(lineString);
   }
 
-
   return resultArr.join('\n');
 }
 
@@ -140,7 +138,7 @@ async function checkUserDeflators(ctx) {
   ctx.session.dbDeflatorsData = {};
 
   try {
-    let response = await fetch(`https://baserow.coldnaked.ru/api/database/rows/table/460/?user_field_names=true&filter__field_4170__equal=${ctx.message.from.id}`, {
+    let response = await fetch(`${process.env.DB_URL}/table/460/?user_field_names=true&filter__field_4170__equal=${ctx.message.from.id}`, {
     method: 'GET',
     headers: {
       'Authorization': `Token ${process.env.DB_TOKEN}`
@@ -184,7 +182,7 @@ async function checkUserDeflators(ctx) {
   }
 
   } catch(e) {
-      new Error('Ошибка GET запроса к базе данных');
+      new Error('Ошибка GET запроса к базе данных', e.message);
   }
 }
 
