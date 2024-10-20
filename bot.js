@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fetch = require('node-fetch');
 const { Telegraf, Markup, Scenes, session } = require('telegraf');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -75,11 +76,11 @@ async function initBot() {
 
     ctx.replyWithHTML(`
   <b>Приветствую, ${ctx.message.from.first_name}!</b>
-  Добро пожаловать в бот для расчета цен по индексам-дефляторам.
+Добро пожаловать в бот для расчета цен по индексам-дефляторам.
 
-  Посмотреть справку /help
+Посмотреть справку /help
 
-  <i>Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать дефляторы по умолчанию.</i>
+<i>Вы можете ввести пользовательские дефляторы в бот для дальнейшего использования или использовать дефляторы по умолчанию.</i>
       `, Markup.inlineKeyboard([
         [Markup.button.callback('Ввести новые дефляторы', 'newDeflators')],
         [Markup.button.callback('Расчитать цену', 'calcPrice')]

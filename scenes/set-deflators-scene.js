@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const { Markup, Scenes } = require('telegraf');
 const {deleteMessages} = require('../services/deleteMessages');
 

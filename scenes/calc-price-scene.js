@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const { Markup, Scenes } = require('telegraf');
 const Big = require('big.js');
 const { baseData } = require('../bot');
