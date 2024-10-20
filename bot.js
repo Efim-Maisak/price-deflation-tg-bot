@@ -1,7 +1,9 @@
 require('dotenv').config();
 const { Telegraf, Markup, Scenes, session } = require('telegraf');
 
-const baseData = {
+const bot = new Telegraf(process.env.BOT_TOKEN);
+
+let baseData = {
   basis: "",
   basicYears: [],
   basicDeflators: []
@@ -46,8 +48,6 @@ async function getBaseDeflators() {
     console.error('Ошибка получения базовых дефляторов', e.message);
   }
 }
-
-const bot = new Telegraf(process.env.BOT_TOKEN);
 
 // Инициализация бота
 async function initBot() {
@@ -104,41 +104,41 @@ async function initBot() {
     let basicDeflatorsCopy = basicDeflators.slice();
 
     let helpText = `
-    <b>Справка:</b>
+  <b>Справка:</b>
 
-    Индексы дефляторы по умолчанию (Раздел C "Обрабатывающие производства")
-    ${basis}:
+Индексы дефляторы по умолчанию (Раздел C "Обрабатывающие производства")
+${basis}:
 
-    ${basicYearsCopy.slice(1, 6).join(' | ')}
-    ${basicDeflatorsCopy.slice(1, 6).map(item => String(item).concat('%')).join(' | ')}
+${basicYearsCopy.slice(1, 6).join(' | ')}
+${basicDeflatorsCopy.slice(1, 6).map(item => String(item).concat('%')).join(' | ')}
 
-    `;
+`;
 
-    if (ctx.session.userCustomYears && ctx.session.userCustomDeflators) {
-      helpText += `
-        Пользовательские дефляторы:
+  if (ctx.session.userCustomYears && ctx.session.userCustomDeflators) {
+  helpText += `
+Пользовательские дефляторы:
 
-        ${ctx.session.userCustomYears.slice(1).join(' | ')}
-        ${ctx.session.userCustomDeflators.slice(1).map(item => item.concat('%')).join(' | ')}
-        `;
-        } else {
-          helpText += `
-        Пользовательские дефляторы не определены.
-        `;
-      }
+${ctx.session.userCustomYears.slice(1).join(' | ')}
+${ctx.session.userCustomDeflators.slice(1).map(item => String(item).concat('%')).join(' | ')}
+  `;
+  } else {
+    helpText += `
+Пользовательские дефляторы не определены.
+  `;
+}
 
-      helpText += `
-      &#9888 Команды:
+  helpText += `
+&#9888 Команды:
 
-      /calc - Произвести расчет цен;
-      /set - Установить пользовательские дефляторы;
-      /cancel - Завершить диалог ввода данных;
-      /toggle - Переключить набор дефляторов с пользовательского на базовый и наоборот.
+/calc - Произвести расчет цен;
+/set - Установить пользовательские дефляторы;
+/cancel - Завершить диалог ввода данных;
+/toggle - Переключить набор дефляторов с пользовательского на базовый и наоборот.
 
-      &#8505 Вы можете ввести пользовательские дефляторы в бот или использовать индексы дефляторы по умолчанию.
-      `;
+&#8505 Вы можете ввести пользовательские дефляторы в бот или использовать индексы дефляторы по умолчанию.
+`;
 
-    ctx.replyWithHTML(helpText);
+  ctx.replyWithHTML(helpText);
   });
 
   // Команда /calc

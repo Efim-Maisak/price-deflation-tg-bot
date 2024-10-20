@@ -8,8 +8,8 @@ let usedYears = [];
 let usedDeflators = [];
 let resultFinal = [];
 
-
-const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
+const calcPriceScene = new Scenes.WizardScene('calcPriceWizard',
+  (ctx) => {
     usedYears = [];
     usedDeflators = [];
     resultFinal = [];
@@ -19,12 +19,19 @@ const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
     ctx.wizard.state.data.messageCounter += 1;
     return ctx.wizard.next();
   },
-  (ctx) => {
+  async (ctx) => {
     ctx.wizard.state.data.messageCounter += 1;
     ctx.wizard.state.data.yearAnswer = ctx.message.text;
-    if(parseInt(ctx.wizard.state.data.yearAnswer) < parseInt(baseData.basicYears[0]) || parseInt(ctx.wizard.state.data.yearAnswer) > parseInt(baseData.basicYears[baseData.basicYears.length - 2]) || isNaN(ctx.wizard.state.data.yearAnswer)) {
+    const inputYear = parseInt(ctx.wizard.state.data.yearAnswer);
+
+    // Проверяем наличие пользовательских дефляторов
+    await checkUserDeflators(ctx);
+
+    let validYears = ctx.session.isCustomDef ? ctx.session.userCustomYears : baseData.basicYears;
+
+    if (isNaN(inputYear) || !validYears.includes(inputYear.toString())) {
       deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
-      ctx.reply('Вы ввели неправильный год начальной цены.');
+      ctx.reply(`Вы ввели неправильный год начальной цены. Допустимые годы: ${validYears.join(', ')}`);
       return ctx.scene.leave();
     } else {
       ctx.reply('Введите начальную цену', Markup.keyboard(['/cancel']).oneTime().resize());
@@ -40,28 +47,21 @@ const calcPriceScene = new Scenes.WizardScene('calcPriceWizard', (ctx) => {
       ctx.reply('Вы ввели некорректное число.');
       return ctx.scene.leave();
     } else {
-      checkUserDeflators(ctx).then(() => {
-        if(ctx.session.isCustomDef) {
-          // применить пользовательские дефляторы
-          calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, ctx.session.userCustomYears, ctx.session.userCustomDeflators);
-          deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
-          ctx.reply(`
-      Вы ввели год: ${ctx.wizard.state.data.yearAnswer} и цену: ${ctx.wizard.state.data.priceAnswer.replace(".", ",")}\nРезультат:\n${createCalcResponse(resultFinal, usedYears, usedDeflators)}
-      `, Markup.keyboard(['/calc']).resize());
-        } else {
-          // применить базовые дефляторы
-          calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, baseData.basicYears, baseData.basicDeflators);
-          deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
-          ctx.reply(`
-      Вы ввели год: ${ctx.wizard.state.data.yearAnswer} и цену: ${ctx.wizard.state.data.priceAnswer.replace(".", ",")}\nРезультат:\n${createCalcResponse(resultFinal, usedYears, usedDeflators)}
-      `, Markup.keyboard(['/calc']).resize());
-        }
-      });
+      if(ctx.session.isCustomDef) {
+        // применить пользовательские дефляторы
+        calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, ctx.session.userCustomYears, ctx.session.userCustomDeflators);
+      } else {
+        // применить базовые дефляторы
+        calcPrice(ctx.wizard.state.data.yearAnswer, ctx.wizard.state.data.priceAnswer, baseData.basicYears, baseData.basicDeflators);
+      }
+      deleteMessages(ctx.wizard.state.data.messageCounter - 1, ctx);
+      ctx.reply(`
+  Вы ввели год: ${ctx.wizard.state.data.yearAnswer} и цену: ${ctx.wizard.state.data.priceAnswer.replace(".", ",")}\nРезультат:\n${createCalcResponse(resultFinal, usedYears, usedDeflators)}
+  `, Markup.keyboard(['/calc']).resize());
     }
     return ctx.scene.leave();
   }
 );
-
 
 calcPriceScene.hears('/cancel', async (ctx) => {
   deleteMessages(ctx.wizard.state.data.messageCounter, ctx);
@@ -170,11 +170,11 @@ async function checkUserDeflators(ctx) {
       let subArr = [];
       subArr = elem.split('-');
       yearsArr.push(subArr[0]);
-      deflatorsArr.push(subArr[1]);
+      deflatorsArr.push(Number(subArr[1]));
     });
 
     ctx.session.userCustomYears = [ String(parseInt(yearsArr[0]) - 1), ...yearsArr] ;
-    ctx.session.userCustomDeflators = [ '0', ...deflatorsArr];
+    ctx.session.userCustomDeflators = [ 0 , ...deflatorsArr];
 
     ctx.session.isCustomDef = true;
   } else {
